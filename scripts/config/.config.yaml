@@ -1,0 +1,6 @@
+tmdb_api_token: ""
+firebase_config_path: ""
+initailize_tests: False
+overwrite_movies: True
+supabase_url: ""
+supabase_key: ""

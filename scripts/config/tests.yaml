@@ -1,0 +1,44 @@
+- id: 1
+  name: "Bechdel-Wallace"
+  objective: "Disparidad o representación de sexos"
+  description: "Evalúa si una obra presenta al menos dos mujeres que hablen entre sí sobre algo que no sea un hombre."
+- id: 2
+  name: "Mako Mori"
+  objective: "Representación de personajes femeninos"
+  description: "Evalúa si una película tiene al menos una mujer con su propia narrativa, no centrada en un hombre."
+- id: 3
+  name: "Vito Russo"
+  objective: "Representación LGBTQ+"
+  description: "Evalúa la presencia y relevancia de personajes LGBTQ+ en el cine."
+- id: 4
+  name: "Russo-Geena Davis"
+  objective: "Representación de género"
+  description: "Evalúa la proporción y representación activa de personajes femeninos en cine y TV."
+- id: 5
+  name: "DuVernay"
+  objective: "Representación de personas afrodescendientes"
+  description: "Evalúa si hay personajes afrodescendientes con narrativas propias no centradas en personajes blancos."
+- id: 6
+  name: "Sexy Lamp"
+  objective: "Agencia de personajes femeninos"
+  description: "Evalúa si un personaje femenino es tan irrelevante que podría ser reemplazado por una lámpara sexy."
+- id: 7
+  name: "Finkbeiner"
+  objective: "Representación de mujeres científicas"
+  description: "Evalúa la representación de mujeres científicas evitando estereotipos y menciones irrelevantes a su género."
+- id: 8
+  name: "Ko"
+  objective: "Representación de personajes asiáticos"
+  description: "Evalúa si hay personajes asiáticos que hablen y no estén estereotipados ni sirvan solo a personajes blancos."
+- id: 9
+  name: "Racial Bechdel"
+  objective: "Representación de personas afrodescendientes"
+  description: "Evalúa si hay al menos dos personajes afrodescendientes que hablen entre sí sobre algo que no sea un personaje blanco."
+- id: 10
+  name: "Villainous Archetype"
+  objective: "Estereotipos negativos"
+  description: "Evalúa si los personajes afrodescendientes o LGBTQ+ son representados únicamente como villanos o en roles negativos."
+- id: 11
+  name: "Gender Reversal"
+  objective: "Sesgos de género"
+  description: "Evalúa cómo cambiaría la narrativa si los géneros de los personajes fueran invertidos."
