@@ -14,10 +14,10 @@ class MovieAPI:
         response.raise_for_status()
         return response.json()
 
-    def fetch_movies(self, lang: str = 'en-US') -> List[Dict[str, str]]:
+    def fetch_movies(self, lang: str = 'en-US', year: int = 2021, page: int = 1) -> List[Dict[str, str]]:
         """Fetch popular movies and return a list of dictionaries with movie details."""
-        fields = ['id', 'title', 'release_date', 'poster_path', 'vote_average']
-        data = self.make_request(f"discover/movie?include_adult=false&include_video=false&language={lang}&page=1&sort_by=popularity.desc&primary_release_date.lte=2022-01-01&primary_release_date.gte=2021-01-01")
+        fields = ['id', 'title', 'release_date', 'poster_path', 'vote_average', 'backdrop_path']
+        data = self.make_request(f"discover/movie?include_adult=false&include_video=false&language={lang}&page={page}&sort_by=popularity.desc&primary_release_date.lte={year+1}-01-01&primary_release_date.gte={year}-01-01")
         movies = []
 
         for movie in data['results']:

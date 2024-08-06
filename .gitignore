@@ -164,5 +164,9 @@ cython_debug/
 .mindful-content/
 scripts/config/config.yaml
 scripts/config/mindful-content-firebase-adminsdk-tz4td-a3621c6603.json
+scripts/logs/
+ui/logs/
 testing something.ipynb
 notes.md
+/node_modules
+/.vscode
