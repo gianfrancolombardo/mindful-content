@@ -1,10 +1,10 @@
 import streamlit as st
 
 
+import os
 import sys
-
-sys.path.append('..')
-sys.path.append('../scripts')
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts')))
 
 from scripts.core.movie_api import MovieAPI
 from scripts.core.movie_manager import MovieManager, Tables

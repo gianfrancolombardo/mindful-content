@@ -1,13 +1,11 @@
-
-
 import datetime
 from enum import Enum
 import time
 from typing import Dict
 
-from core.movie_api import MovieAPI
-
-from helpers.supabase_db import SupabaseDB
+from scripts.core.movie_analyzer import MovieAnalyzer
+from scripts.core.movie_api import MovieAPI
+from scripts.helpers.supabase_db import SupabaseDB
 
 class Tables(Enum):
     MOVIES = 'movies'
@@ -81,11 +79,10 @@ class MovieManager:
         except Exception as e:
             print(f"Error saving genre: {str(e)}")
 
-    def create_results(self, analyzer, movie: Dict[str, str], test: Dict[str, str]) -> None:
+    def create_results(self, analyzer: MovieAnalyzer, movie: Dict[str, str], test: Dict[str, str]) -> None:
         """Save the results of the tests to the database."""
-
         start_time = time.time()
-        result = analyzer.run(movie['title'], movie['year'], test['name'], test['objective'])
+        result = analyzer.run(movie['title'], movie['year'], test['criteria'])
         end_time = time.time()
         
         result['test_id'] = test['id']
@@ -93,6 +90,7 @@ class MovieManager:
 
         # Translate the result
         if 'reason_es' not in result:
+            print(f"Translating reason: {result['reason']}")
             result['reason_es'] = self.translate_result(analyzer, result['reason'])
         
         result['movie_id'] = movie['id']
@@ -114,23 +112,21 @@ class MovieManager:
             reason_es = None
         return reason_es
     
-    def create_summary(self, analyzer, movie):
+    def create_summary(self, analyzer: MovieAnalyzer, movie: str):
         """ Generate and translate summary movie. """
 
-        movie_to_update = {}
-        movie_to_update['summary'] = analyzer.summary(movie)
-        if movie_to_update['summary']:
-            try:
-                
-                translated = analyzer.translate(movie_to_update['summary'], 'Spanish')
-                if 'translated' in translated:
-                    movie_to_update['summary_es'] = translated['translated']
-            except Exception as e:
-                movie_to_update['summary_es'] = None
+        movie_to_update = {
+            'summary': None,
+            'summary_es': None,
+            'our_score': 0
+        }
 
+        count_incomplete = sum(1 for test in movie['result_test'] if test['result'] is None)
+        if count_incomplete < len(movie['result_test']):
+            movie_to_update['summary'] = movie_to_update['summary_es'] = analyzer.summary(movie)
             movie_to_update['our_score'] = self.calculate_score(movie)
 
-            self.db.update(Tables.MOVIES, {'id': movie['id']}, movie_to_update)
+        self.db.update(Tables.MOVIES, {'id': movie['id']}, movie_to_update)
 
     def calculate_score(self, movie) -> int:
         """ Calculate percentage of passed test. """
@@ -143,3 +139,14 @@ class MovieManager:
         score_percentage = (true_results / total_tests) * 100
         
         return int(score_percentage)
+    
+    def delete_movie(self, movie_id: str) -> None:
+        """Delete a movie from the database."""
+        print(f"Deleting movie: {movie_id}")
+        try:
+            self.db.delete(Tables.RESULT_TEST, {'movie_id': movie_id})
+            self.db.delete(Tables.MOVIES_GENRES, {'movie_id': movie_id})
+            self.db.delete(Tables.MOVIES, {'id': movie_id})
+            return True
+        except Exception as e:
+            return e

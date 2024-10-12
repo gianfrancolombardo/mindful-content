@@ -12,6 +12,7 @@ class MovieAnalyzer:
     def __init__(self, 
                 base_url="http://localhost:1234/v1", 
                 api_key="not-needed", 
+                model="gpt-4o-mini",
                 temperature=0):
         
         handler = LunaryCallbackHandler(app_id="508ded07-b3ab-40c1-b4c4-91b34bac5b98")
@@ -19,27 +20,51 @@ class MovieAnalyzer:
         self.chat = ChatOpenAI(
             base_url=base_url, 
             api_key=api_key,
-            temperature=temperature
+            temperature=temperature,
+            model=model
             ,callbacks=[handler]
         )
         self.prompts = {
             "system": """
-                    You are a helpful assistant with a lot of knowledge about movies, series and tv shows, its actors, plot, and scripts. 
-                    You knowledge isn't infinite, if you don't know the movie or series you just say I don't know.
-                    You are also a professional creating json objects and you know its structure. IMPORTANT: If a json object is requested, you only have to answer the code.
+                    You are an advanced AI assistant with extensive knowledge of movies, series, TV shows, actors, plot details, and scripts. 
+                    Your responses are designed to help users navigate this information with accuracy and detail. Your knowledge, however, is not infinite; if you're unfamiliar with a movie or series, state clearly, "I don't know." Additionally, you are skilled in creating JSON objects with perfect syntax and structure. 
+                    Avoid using the term 'people of color' and instead use 'afrodescendant'.
+                    Your responses should always follow this structure:
+
+                    1. Begin with a <thinking> section where you:
+                        a. Analyze the request and the information provided.
+                        b. Clearly outline your approach, identifying necessary steps.
+                        c. Break down your reasoning using "Chain of Thought" when necessary, especially if it involves complex analysis.
+
+                    2. For each key decision or piece of reasoning, include a <reflection> section where you:
+                        a. Review your analysis.
+                        b. Check for potential mistakes or missing details.
+                        c. Validate or adjust your conclusion, if necessary.
+
+                    3. Close all <reflection> sections and the <thinking> section with their respective closing tags.
+
+                    4. If requested, provide a detailed response in an <output> section, including any additional context or explanations.
+
+                    5. When a JSON object is requested:
+                        - Answer with correct JSON syntax, no additional comments, or explanations outside the code block.
+                        - Ensure the structure is clean and correct.
+
+                    Remember to follow the tag format (<thinking>, <reflection>, <output>) throughout your responses. Be thorough in your reasoning, and provide clarity and precision at each step.
+                    If a movie or series is outside your knowledge, promptly indicate so and move on to the next inquiry.
             """,
             "prompt_1": """
                     Do you know the movie {movie} from the year {year}?
                     Provide detailed information on the representation of genders, ethnicities, and other possible biases in this film.
-                    At the end of your response add a JSON object with the key "is_there_information" and value boolean.""",
+                    Only for this response: at the end of your response add a JSON object with the key "is_there_information" and value boolean.""",
             "prompt_2": """
-                    Explain the criteria required for a movie to pass the {test} test, which evaluates {test_objective}.
-                    2. Analyze whether the movie meets these criteria, providing a step-by-step rationale for your conclusion.
+                    The criteria: {test_criteria}
+                    Task: Analyze whether the movie {movie} ({year}) meets these criteria, providing a step-by-step rationale for your conclusion.
             """,
             "prompt_3": """
                     Based on your analysis, provide a JSON object with the following structure:
                     - result: (boolean)
                     - reason: (a simple sentence with passed or not this test specific for this movie, be specific). 
+                    - reason_es: (the same reason in Spanish)
                     Important: Just the json object, nothing else.
             """,
             "system_translate": """
@@ -51,17 +76,37 @@ class MovieAnalyzer:
                     "{text}"
             """,
             "system_summary": """
-                    You are a professional summarizer and content creator with a strong radical feminist perspective who can summarize in a concise way and ensure that each word adds value to the summary, 
-                    aimed at a non-technical audience. 
-                    You create short really viral content focused on social networks.
-                    Avoid using the term "people of color"; use "afrodescendant" instead. 
-                    Avoid using double quotation marks (") in your response because they cause errors in JSON formatting. Use single quotation marks (') instead. 
+                    You are a professional content creator and summarizer with a strong radical feminist perspective. You can summarize concisely, ensuring that each word adds value to the summary, aimed at a non-technical audience. 
+                    You create short, highly viral content focused on social media.
+                    Your responses should always follow this structure:
+
+                    1. Begin with a <thinking> section where you:
+                        a. Analyze the request and the provided content.
+                        b. Clearly outline your approach for creating the summary or viral content.
+                        c. Break down your reasoning using 'Chain of Thought' if necessary, especially to ensure a strong radical feminist approach.
+
+                    2. For each key decision or part of your reasoning, include a <reflection> section where you:
+                        a. Review your analysis.
+                        b. Check for potential mistakes or if the content can be optimized.
+                        c. Validate or adjust your conclusion if necessary.
+
+                    3. Close all <reflection> and <thinking> sections with their respective closing tags.
+
+                    4. If requested, provide a summary or content in an <output> section, ensuring it is brief, clear, and impactful for social media.
+
+                    5. When creating viral content:
+                        - Avoid using the term 'people of color' and instead use 'afrodescendant'.
+                        - Avoid using double quotation marks (") in your response to prevent JSON formatting errors; use single quotation marks (') instead.
+
+                    Remember to follow the tag format (<thinking>, <reflection>, <output>) throughout your responses. Be concise, clear, and direct, optimizing the content to be viral on social media while ensuring a strong radical feminist perspective in each step.
+
             """,
             "prompt_summary": """
                     {results}
                     Based on the previous test results for the movie "{movie}" ({year}), 
-                    create a concise summary for social media that highlights the implications of the biases found in the movie. 
+                    create a concise summary for social media with educational and informative tone, that highlights the implications of the biases found in the movie. 
                     Do not mention the tests themselves. Avoid hashtags.
+                    At the end of your response add a JSON object with the key "summary_in_spanish" with the summary in Spanish.
             """
         }
 
@@ -87,7 +132,7 @@ class MovieAnalyzer:
         """ Clear the cache. """
         self.cache.clear()
 
-    def run(self, movie, year, test, test_objective):
+    def run(self, movie, year, test_criteria):
         """ Analyzing a movie, utilizing caching and chat history. """
         chat_history = ChatMessageHistory()
         json_parser = SimpleJsonOutputParser()
@@ -117,7 +162,10 @@ class MovieAnalyzer:
 
         # Step 2
         prompt_2 = PromptTemplate.from_template(self.prompts["prompt_2"])
-        chat_history.add_user_message(prompt_2.format(test=test, test_objective=test_objective))
+        chat_history.add_user_message(prompt_2.format(
+            test_criteria=test_criteria,
+            movie=movie, 
+            year=year))
         response_2 = chain.invoke({"messages": chat_history.messages})
         chat_history.add_ai_message(response_2)
 
@@ -177,8 +225,14 @@ class MovieAnalyzer:
             chat_history.add_user_message(prompt_summary.format(movie=movie['title'], year=movie['year'], results=results_str))
             response = chain_summary.invoke({"messages": chat_history.messages})
             chat_history.add_ai_message(response)
+
+            obj_summary = self.get_json(response)
+            if obj_summary is None:
+                summary = self.get_output_tags(response)
+            else:
+                summary = obj_summary['summary_in_spanish']
             
-            return response.content
+            return summary
         except Exception as e:
             print("Error summating", e)
             return None
@@ -186,12 +240,7 @@ class MovieAnalyzer:
     def is_there_information(self, ai_message: AIMessage) -> dict:
         """ Extracts the JSON object from the AI message and check if there is information """
         try:
-            start_index = ai_message.content.find("{")
-            end_index = ai_message.content.rfind("}")
-            json_str = ai_message.content[start_index:end_index+1]
-            if not json_str:
-                return False
-            obj_response = json.loads(json_str)
+            obj_response = self.get_json(ai_message)
             
             if 'is_there_information' in obj_response:
                 return obj_response['is_there_information']
@@ -200,6 +249,28 @@ class MovieAnalyzer:
         except Exception as e:
             return False
         
+    def get_json(self, ai_message: AIMessage) -> dict:
+        """ Extracts the JSON object from the AI message. """
+        try:
+            start_index = ai_message.content.find("{")
+            end_index = ai_message.content.rfind("}")
+            json_str = ai_message.content[start_index:end_index+1]
+            if not json_str:
+                return None
+            return json.loads(json_str)
+        except Exception as e:
+            return None
+
+    def get_output_tags(self, ai_message: AIMessage) -> dict:
+        """ Extracts text into the tag <output> from the AI message. """
+        try:
+            start_index = ai_message.content.find("<output>")
+            end_index = ai_message.content.rfind("</output>")
+            return ai_message.content[start_index:end_index+9]
+        except Exception as e:
+            return None
+        
+        
     def return_default_empty_object(self):
         """ Returns a default empty object with the test name. """
-        return self.default_empty_object
+        return self.default_empty_object.copy()

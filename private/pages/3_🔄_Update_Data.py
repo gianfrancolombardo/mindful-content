@@ -81,7 +81,8 @@ if update_summary_btn:
         
         # Get all movies with summary None
         st.write("Fetching movies from DB...")
-        data_movies = db.table(Tables.MOVIES).select('*').is_('summary', 'null').execute()
+        #data_movies = db.table(Tables.MOVIES).select('*').is_('summary', 'null').execute()
+        data_movies = db.table(Tables.MOVIES).select('*').execute()
         st.write(f"{len(data_movies.data)} movies will be updated.")
         
         for movie in data_movies.data:

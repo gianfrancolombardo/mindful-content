@@ -1,18 +1,19 @@
 import datetime
 from typing import List, Dict, Any
 
-from core.movie_analyzer import MovieAnalyzer
-from core.movie_api import MovieAPI
-from core.movie_manager import MovieManager
-from helpers.logger import Logger
+from scripts.core.movie_analyzer import MovieAnalyzer
+from scripts.core.movie_api import MovieAPI
+from scripts.core.movie_manager import MovieManager
+from scripts.helpers.logger import Logger
 
 class MovieMain:
-    def __init__(self, movies_api: MovieAPI, manager: MovieManager, log_callback = None):
+    def __init__(self, movies_api: MovieAPI, manager: MovieManager, analyzer: MovieAnalyzer = None, log_callback = None):
         self.movies_api = movies_api
         self.manager = manager
-        self.analyzer = MovieAnalyzer()
+        self.analyzer = MovieAnalyzer() if analyzer is None else analyzer
         self.logger = Logger().get_logger()
         self.log_callback = log_callback
+        self.lang = 'es-ES'
 
     def analyze_movies(self, year: int, page: int, overwrite_movies: bool, clear_cache: bool) -> List[Dict[str, Any]]:
         """Get movies from the API, analyze them and save the results."""
@@ -35,11 +36,20 @@ class MovieMain:
         self.log(f"{len(analyzed_movies)} movies analyzed and saved!")
         return analyzed_movies
 
+
+    def analyze_single_movie(self, movie_id: str, overwrite_movies: bool) -> Dict[str, Any]:
+        """Get a single movie from the API, analyze it and save the results."""
+        
+        movie = self.movies_api.fetch_movie_details(movie_id, lang=self.lang, raw=False)
+        return self.process_movie(movie, overwrite_movies, self.manager.get_tests())
+
+
     def fetch_movies(self, year: int, page: int) -> List[Dict[str, Any]]:
         """Fetch movies from the API."""
 
         self.log("Fetching movies from API...")
-        return self.movies_api.fetch_movies(year=year, page=page)
+        return self.movies_api.fetch_movies(year=year, page=page, lang=self.lang)
+
 
     def process_movie(self, movie: Dict[str, Any], overwrite_movies: bool, tests_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Process a movie by analyzing it and saving the results."""
@@ -57,6 +67,10 @@ class MovieMain:
         self.manager.set_tests_inactive(movie['id'])
         
         results_test = self.run_tests(movie, tests_list)
+        if results_test is None:
+            self.log(f"\tNo info in the model, so it was skipped")
+            return None
+        
         movie['result_test'] = results_test
         
         self.log(f"\tGenerating summary")
@@ -69,11 +83,22 @@ class MovieMain:
 
         results_test = []
         for current_test in tests_list:
-            self.log(f"\tRunning test: {current_test['name']}")
-            result = self.manager.create_results(self.analyzer, movie, current_test)
-            self.manager.save_results(result)
-            result['tests'] = current_test
-            results_test.append(result)
+            try:
+                self.log(f"\tRunning test: {current_test['name']}")
+                result = self.manager.create_results(self.analyzer, movie, current_test)
+
+                # Check if there is info
+                if result['result'] is None:
+                    # Delete movie because there is info in the model
+                    self.manager.delete_movie(movie['id'])
+                    return None
+
+                self.manager.save_results(result)
+                
+                result['tests'] = current_test
+                results_test.append(result)
+            except Exception as e:
+                self.log(f"\tError running test: {current_test['name']}. Error: {e}")
         return results_test
 
     def log_start(self):
